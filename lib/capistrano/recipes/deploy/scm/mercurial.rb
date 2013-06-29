@@ -73,7 +73,7 @@ module Capistrano
           when /^user:/mi
             # support :scm_user for backwards compatibility of this module
             if user = variable(:scm_username) || variable(:scm_user)
-              "#{user}\n"
+              %("#{user}"\n)
             else
               raise "No variable :scm_username specified and Mercurial asked!\n" +
                 "Prompt was: #{text}"
@@ -84,16 +84,16 @@ module Capistrano
               raise "No variable :scm_password specified and Mercurial asked!\n" +
                 "Prompt was: #{text}"
             end
-            "#{pass}\n"
+            %("#{pass}"\n)
           when /yes\/no/i
             "yes\n"
           end
         end
-        
+
         private
 
         # Fine grained mercurial commands
-        def clone(destination) 
+        def clone(destination)
           scm :clone,
               verbose,
               "--noupdate", # do not update to tip when cloning is done
@@ -124,7 +124,7 @@ module Capistrano
             else            "--verbose"
           end
         end
-        
+
         # honor Cap 2.1+'s :scm_prefer_prompt if present
         def scm_password_or_prompt
           @scm_password_or_prompt ||= variable(:scm_password) ||

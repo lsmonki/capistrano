@@ -141,9 +141,9 @@ module Capistrano
         # look to see if this specific configuration instance has ever seen
         # these arguments to require before
         if @loaded_features.include?(args)
-          return false 
+          return false
         end
-        
+
         @loaded_features << args
         begin
           original_instance, self.class.instance = self.class.instance, self
@@ -160,6 +160,14 @@ module Capistrano
           # restore the original, so that require's can be nested
           self.class.instance = original_instance
           self.class.current_feature = original_feature
+        end
+      end
+
+      def file_in_load_path?(file)
+        begin
+          !!find_file_in_load_path(file)
+        rescue LoadError
+          false
         end
       end
 

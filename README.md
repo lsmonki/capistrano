@@ -1,7 +1,7 @@
 ## Capistrano
 
 [![Build
-Status](https://secure.travis-ci.org/capistrano/capistrano.png)](http://travis-ci.org/capistrano/capistrano)
+Status](https://secure.travis-ci.org/capistrano/capistrano.png)](http://travis-ci.org/capistrano/capistrano)[![Code Climate](https://codeclimate.com/badge.png)](https://codeclimate.com/github/capistrano/capistrano)
 
 
 Capistrano is a utility and framework for executing commands in parallel on
@@ -39,7 +39,7 @@ assumptions behind these opinions are:
 
 * You are using SSH to access the remote servers.
 * You either have the same password to all target machines, or you have public
-	keys in place to allow passwordless access to them.
+  keys in place to allow passwordless access to them.
 
 Do not expect these assumptions to change.
 
@@ -55,7 +55,7 @@ Use the `cap` script as follows:
     cap sometask
 
 By default, the script will look for a file called one of `capfile` or
-`Capfile`. The `someaction` text indicates which task to execute. You can do
+`Capfile`. The `sometask` text indicates which task to execute. You can do
 "cap -h" to see all the available options and "cap -T" to see all the available
 tasks.
 
@@ -68,7 +68,7 @@ tasks.
 * Push to your branch - `git push origin my_branch`
 * Create a Pull Request from your branch, include as much documentation
   as you can in the commit message/pull request, following these
-[guidelines on writing a good commit message](http://spheredev.org/wiki/Git_for_the_lazy#Writing_good_commit_messages)
+[guidelines on writing a good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
 * That's it!
 
 

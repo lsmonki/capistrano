@@ -1,5 +1,74 @@
-## 2.13.5 (tentative) / October 26 2012
+## 2.15.4 / April 29 2013
 
+* Fix parallel command logging (@gnufied)
+* Fix a double-asset manifest problem on Rails upgrades. (@jimryan)
+
+## 2.15.3 / April 25 2012
+
+* For deploy:cleanup, use try_sudo with rm command. (@joshstaiger)
+* Restore maintenance.rhtml (@chulkilee)
+* Fixes GH-434, If branches is an array of array, iterate them separately. (@gnufied)
+
+A big "thank you" to the people who've pushed really amazing patches to the
+2.15.x branch so soon after it's release. 2.15.0 was just too huge to go out
+bug free.
+
+## 2.15.2 / April 24 2013
+
+* Fixed a bug with asset_paths (String vs. Array). (@joeycarmello)
+
+## 2.15.1 / April 23 2013
+
+* Support for Rails 4 (and other) randomised asset manifest names. (@jimryan)
+
+## 2.15.0 / April 23 2013
+
+* New varaible :shared_assets_prefix to allow people to host somewhere other
+  than `/assets/`. Default is `assets`.
+* Bring back web:enable and web:disable tasks. Sincerely apologies to all affected
+  removing these was one of the most glaring mistakes we've made on this project
+  and I feel personally responsible.
+* Makes :git_shallow_clone work with branches (@cannikin)
+* Avoid removing required assets (@bosko)
+* Fix escaping of asset_paths when calling `deploy:finalize_update` (@mcary)
+* Improve parallel command logging (@mpapis)
+* Allow updating variables in the cap shell `cap> set :some_setting new_value`
+  (@jpfuentes2)
+* Add the option to configure `Capistrano::Logger.default_formatters=` this
+  relates to the previous merging of the capistrano-colors gem. (@kellyredding)
+* Don't attempt to connect to a nil `:gateway` (@mattheath)
+* Simplify our .gemspec dependency list (@timoschilling)
+* Make the existece of `config/deploy/{stage}.rb` optional, it'll be loaded if
+  it exists, otherwise we continue without it (@ymainier)
+* Misc spelling/typo fixes. (@mv)
+* Update mtime and atime with touch when fixing asset timestamps (@wildoats)
+* Change call of `rake {env} precompile:all` to drop the errornous `{env}` (@zxiest)
+* Evaluate assets_role at runtime using a lambda (@nlenepveu)
+* Handle when hosts (for example by joining/leaving the no_release meta group)
+  have different old releases for `deploy:cleanup` (@oggy)
+* Check for nil when tearing down connections (@yyuu)
+* Go back to using SCP for uploads as against SFTP (@pjungwir)
+* Added an option to dereference symlinks when using the :copy strategy
+  (`set :copy_dereference_symlink, true`) useful when your working directory
+  contains files symlinked in from outside your project root (@mehmetc)
+* Small typo fix in README (@yule)
+* Add Ruby 2.0.0-p0 to the TravisCI build (@jarrettmeyer)
+* Add the option to set the shared asset prefix for Rails,
+  (`set :shared_assets_prefix, "my_shared_assets"`) corresponds with it's
+  namesake in Rails. By default is set to `assets`. (@spectator)
+* Improved error messages for `cap {stage} deploy:check` (@petems)
+* Make `run_locally` work with the `--dry-run` flag. (@flagthisiskun)
+* Fix a link in the README to writing a good commit message. (@mhutchin)
+* Code style fixes (@mv)
+* Report differently if the command was killed by a signal (for example the
+  oom killer on Ubuntu/Debian). (@tanob)
+
+
+## 2.14.0 / January 9 2013
+
+* Removed ui.output_cols limit of 80 chars (@aussielunix)
+* Added :p4charset variable for Perforce command line (@randyinla)
+* Added support for rolling back assets, and removing expired assets (@ndbroadbent)
 * Merged in `capistrano_colors` gem, and renamed to 'log_formatters', since it does much more than just colors
   (@ndbroadbent)
 * Use more intelligence in setting the :scm variable based on known version control directory names (@czarneckid)
@@ -222,26 +291,26 @@ Git-version requirement for the new implementation is now >= 1.5.6, from
 previously un-documented. (1.5.6 is new-enough that I think this is
 acceptable)
 
-	* Upgrade Net::SSH-gateway dependency to 1.1 (fixes a thread-deadlocking bug on MRI	1.9)
-	* Respect "dry-run" on transfer methods (Florian Frank)
-	* Add support for multiple gateways: (Ryan Duryea)
+  * Upgrade Net::SSH-gateway dependency to 1.1 (fixes a thread-deadlocking bug on MRI  1.9)
+  * Respect "dry-run" on transfer methods (Florian Frank)
+  * Add support for multiple gateways: (Ryan Duryea)
         set :gateway, {
           'gate1.example.com' => 'server1.example.com',
           [ 'gate2.example.com', 'gate3.example.com' ] => [ 'server5.example.com', 'server6.example.com' ]
         }
-	* Properly support nested Git submodules, moves Git requirement to >= 1.5.6 [if	you rely upon submodules] (Ken Miller)
+  * Properly support nested Git submodules, moves Git requirement to >= 1.5.6 [if  you rely upon submodules] (Ken Miller)
   * Fetch tags into the remote cache, allows deploying a tag when using Git, with the remote_cache strategy (Florian Frank)
   * Various fixes to path handling bugs in the copt strategy. (Philippe Rathé)
 
 ## 2.5.21 / April 6 2011
 
-	* Fixed to follow best-practice guidelines from Bundler (Ben Langfeld)
-	* No longer force a gemset for Capistrano development. (Ben Langfeld)
+  * Fixed to follow best-practice guidelines from Bundler (Ben Langfeld)
+  * No longer force a gemset for Capistrano development. (Ben Langfeld)
 
 ## 2.5.20 / March 16 2011
 
   * `deploy:migrations` will now always operate on the latest_release, not
-	current_release (Mike Vincent)
+  current_release (Mike Vincent)
   * Adds a check for the presence of `rsync` when using the copy strategy with `rsync`. (Chris Griego)
   * Do not try to look up the `:release_path` on servers which are defined `:no_release` (Chris Griego)
   * Tiny patch to the `CVS` SCM code to be Ruby 1.9 compatible (Martin Carpenter)

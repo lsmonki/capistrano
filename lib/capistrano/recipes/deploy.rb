@@ -1,8 +1,9 @@
-require 'benchmark'
-require 'yaml'
-require 'shellwords'
-require 'capistrano/recipes/deploy/scm'
-require 'capistrano/recipes/deploy/strategy'
+require "benchmark"
+require "set"
+require "shellwords"
+require "yaml"
+require "capistrano/recipes/deploy/scm"
+require "capistrano/recipes/deploy/strategy"
 
 def _cset(name, *args, &block)
   unless exists?(name)
@@ -56,13 +57,13 @@ _cset(:shared_path)       { File.join(deploy_to, shared_dir) }
 _cset(:current_path)      { File.join(deploy_to, current_dir) }
 _cset(:release_path)      { File.join(releases_path, release_name) }
 
-_cset(:releases)          { capture("ls -x #{releases_path}", :except => { :no_release => true }).split.sort }
+_cset(:releases)          { capture("#{try_sudo} ls -x #{releases_path}", :except => { :no_release => true }).split.sort }
 _cset(:current_release)   { releases.length > 0 ? File.join(releases_path, releases.last) : nil }
 _cset(:previous_release)  { releases.length > 1 ? File.join(releases_path, releases[-2]) : nil }
 
-_cset(:current_revision)  { capture("cat #{current_path}/REVISION",     :except => { :no_release => true }).chomp }
-_cset(:latest_revision)   { capture("cat #{current_release}/REVISION",  :except => { :no_release => true }).chomp }
-_cset(:previous_revision) { capture("cat #{previous_release}/REVISION", :except => { :no_release => true }).chomp if previous_release }
+_cset(:current_revision)  { capture("#{try_sudo} cat #{current_path}/REVISION",     :except => { :no_release => true }).chomp }
+_cset(:latest_revision)   { capture("#{try_sudo} cat #{current_release}/REVISION",  :except => { :no_release => true }).chomp }
+_cset(:previous_revision) { capture("#{try_sudo} cat #{previous_release}/REVISION", :except => { :no_release => true }).chomp if previous_release }
 
 _cset(:run_method)        { fetch(:use_sudo, true) ? :sudo : :run }
 
@@ -73,14 +74,16 @@ _cset(:run_method)        { fetch(:use_sudo, true) ? :sudo : :run }
 # standalone case, or during deployment.
 _cset(:latest_release) { exists?(:deploy_timestamped) ? release_path : current_release }
 
+_cset :maintenance_basename, "maintenance"
+_cset(:maintenance_template_path) { File.join(File.dirname(__FILE__), "templates", "maintenance.rhtml") }
 # =========================================================================
 # These are helper methods that will be available to your recipes.
 # =========================================================================
 
-# Checks known version control directories to intelligently set the version 
-# control in-use. For example, if a .svn directory exists in the project, 
-# it will set the :scm variable to :subversion, if a .git directory exists 
-# in the project, it will set the :scm variable to :git and so on. If no 
+# Checks known version control directories to intelligently set the version
+# control in-use. For example, if a .svn directory exists in the project,
+# it will set the :scm variable to :subversion, if a .git directory exists
+# in the project, it will set the :scm variable to :git and so on. If no
 # directory is found, it will default to :git.
 def scm_default
   if File.exist? '.git'
@@ -126,6 +129,9 @@ end
 # logs the command then executes it locally.
 # returns the command output as a string
 def run_locally(cmd)
+  if dry_run
+    return logger.debug "executing locally: #{cmd.inspect}"
+  end
   logger.trace "executing locally: #{cmd.inspect}" if logger
   output_on_stdout = nil
   elapsed = Benchmark.realtime do
@@ -152,7 +158,7 @@ end
 # THUS, if you want to try to run something via sudo, and what to use the
 # root user, you'd just to try_sudo('something'). If you wanted to try_sudo as
 # someone else, you'd just do try_sudo('something', :as => "bob"). If you
-# always wanted sudo to run as a particular user, you could do 
+# always wanted sudo to run as a particular user, you could do
 # set(:admin_runner, "bob").
 def try_sudo(*args)
   options = args.last.is_a?(Hash) ? args.pop : {}
@@ -261,7 +267,7 @@ namespace :deploy do
     public/stylesheets, and public/javascripts so that the times are \
     consistent (so that asset timestamping works).  This touch process \
     is only carried out if the :normalize_asset_timestamps variable is \
-    set to true, which is the default The asset directories can be overridden \
+    set to true, which is the default. The asset directories can be overridden \
     using the :public_children variable.
   DESC
   task :finalize_update, :except => { :no_release => true } do
@@ -278,7 +284,7 @@ namespace :deploy do
                      "mkdir -p -- #{escaped_release}/#{dir.slice(0..(dir.rindex('/'))).shellescape}"]
       else
         commands << "rm -rf -- #{escaped_release}/#{d}"
-  		end
+      end
       commands << "ln -s -- #{shared_path}/#{dir.split('/').last.shellescape} #{escaped_release}/#{d}"
     end
 
@@ -286,7 +292,9 @@ namespace :deploy do
 
     if fetch(:normalize_asset_timestamps, true)
       stamp = Time.now.utc.strftime("%Y%m%d%H%M.%S")
-      asset_paths = fetch(:public_children, %w(images stylesheets javascripts)).map { |p| "#{escaped_release}/public/#{p}" }
+      asset_paths = fetch(:public_children, %w(images stylesheets javascripts)).
+        map { |p| "#{latest_release}/public/#{p}" }.
+        map { |p| p.shellescape }
       run("find #{asset_paths.join(" ")} -exec touch -t #{stamp} -- {} ';'; true",
           :env => { "TZ" => "UTC" }) if asset_paths.any?
     end
@@ -312,13 +320,13 @@ namespace :deploy do
   task :create_symlink, :except => { :no_release => true } do
     on_rollback do
       if previous_release
-        run "rm -f #{current_path}; ln -s #{previous_release} #{current_path}; true"
+        run "#{try_sudo} rm -f #{current_path}; #{try_sudo} ln -s #{previous_release} #{current_path}; true"
       else
         logger.important "no previous release to rollback to, rollback of symlink skipped"
       end
     end
 
-    run "rm -f #{current_path} && ln -s #{latest_release} #{current_path}"
+    run "#{try_sudo} rm -f #{current_path} && #{try_sudo} ln -s #{latest_release} #{current_path}"
   end
 
   desc <<-DESC
@@ -362,7 +370,7 @@ namespace :deploy do
     DESC
     task :revision, :except => { :no_release => true } do
       if previous_release
-        run "rm #{current_path}; ln -s #{previous_release} #{current_path}"
+        run "#{try_sudo} rm #{current_path}; #{try_sudo} ln -s #{previous_release} #{current_path}"
       else
         abort "could not rollback the code because there is no prior release"
       end
@@ -374,7 +382,7 @@ namespace :deploy do
       (if ever) need to be called directly.
     DESC
     task :cleanup, :except => { :no_release => true } do
-      run "if [ `readlink #{current_path}` != #{current_release} ]; then rm -rf #{current_release}; fi"
+      run "if [ `readlink #{current_path}` != #{current_release} ]; then #{try_sudo} rm -rf #{current_release}; fi"
     end
 
     desc <<-DESC
@@ -454,16 +462,7 @@ namespace :deploy do
   DESC
   task :cleanup, :except => { :no_release => true } do
     count = fetch(:keep_releases, 5).to_i
-    local_releases = capture("ls -xt #{releases_path}").split.reverse
-    if count >= local_releases.length
-      logger.important "no old releases to clean up"
-    else
-      logger.info "keeping #{count} of #{local_releases.length} deployed releases"
-      directories = (local_releases - local_releases.last(count)).map { |release|
-        File.join(releases_path, release) }.join(" ")
-
-      try_sudo "rm -rf #{directories}"
-    end
+    try_sudo "ls -1dt #{releases_path}/* | tail -n +#{count + 1} | #{try_sudo} xargs rm -rf"
   end
 
   desc <<-DESC
@@ -552,6 +551,75 @@ namespace :deploy do
     task :default, :except => { :no_release => true } do
       from = source.next_revision(current_revision)
       system(source.local.log(from))
+    end
+  end
+
+  namespace :web do
+    desc <<-DESC
+      Present a maintenance page to visitors. Disables your application's web \
+      interface by writing a "#{maintenance_basename}.html" file to each web server. The \
+      servers must be configured to detect the presence of this file, and if \
+      it is present, always display it instead of performing the request.
+
+      By default, the maintenance page will just say the site is down for \
+      "maintenance", and will be back "shortly", but you can customize the \
+      page by specifying the REASON and UNTIL environment variables:
+
+        $ cap deploy:web:disable \\
+              REASON="hardware upgrade" \\
+              UNTIL="12pm Central Time"
+
+      You can use a different template for the maintenance page by setting the \
+      :maintenance_template_path variable in your deploy.rb file. The template file \
+      should either be a plaintext or an erb file.
+
+      Further customization will require that you write your own task.
+    DESC
+    task :disable, :roles => :web, :except => { :no_release => true } do
+      require 'erb'
+      on_rollback { run "rm -f #{shared_path}/system/#{maintenance_basename}.html" }
+
+      warn <<-EOHTACCESS
+
+        # Please add something like this to your site's Apache htaccess to redirect users to the maintenance page.
+        # More Info: http://www.shiftcommathree.com/articles/make-your-rails-maintenance-page-respond-with-a-503
+
+        ErrorDocument 503 /system/#{maintenance_basename}.html
+        RewriteEngine On
+        RewriteCond %{REQUEST_URI} !\.(css|gif|jpg|png)$
+        RewriteCond %{DOCUMENT_ROOT}/system/#{maintenance_basename}.html -f
+        RewriteCond %{SCRIPT_FILENAME} !#{maintenance_basename}.html
+        RewriteRule ^.*$  -  [redirect=503,last]
+
+        # Or if you are using Nginx add this to your server config:
+
+        if (-f $document_root/system/maintenance.html) {
+          return 503;
+        }
+        error_page 503 @maintenance;
+        location @maintenance {
+          rewrite  ^(.*)$  /system/maintenance.html break;
+          break;
+        }
+      EOHTACCESS
+
+      reason = ENV['REASON']
+      deadline = ENV['UNTIL']
+
+      template = File.read(maintenance_template_path)
+      result = ERB.new(template).result(binding)
+
+      put result, "#{shared_path}/system/#{maintenance_basename}.html", :mode => 0644
+    end
+
+    desc <<-DESC
+      Makes the application web-accessible again. Removes the \
+      "#{maintenance_basename}.html" page generated by deploy:web:disable, which (if your \
+      web servers are configured correctly) will make your application \
+      web-accessible again.
+    DESC
+    task :enable, :roles => :web, :except => { :no_release => true } do
+      run "rm -f #{shared_path}/system/#{maintenance_basename}.html"
     end
   end
 end

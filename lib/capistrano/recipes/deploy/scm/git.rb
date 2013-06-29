@@ -134,6 +134,9 @@ module Capistrano
           remote = origin
 
           args = []
+
+          # Add an option for the branch name so :git_shallow_clone works with branches
+          args << "-b #{variable(:branch)}" unless variable(:branch).nil?
           args << "-o #{remote}" unless remote == 'origin'
           if depth = variable(:git_shallow_clone)
             args << "--depth #{depth}"
@@ -260,7 +263,7 @@ module Capistrano
             unless pass = variable(:scm_password)
               pass = Capistrano::CLI.password_prompt
             end
-            "#{pass}\n"
+            %("#{pass}"\n)
           when %r{\(yes/no\)}
             # git is asking whether or not to connect
             "yes\n"
@@ -269,7 +272,7 @@ module Capistrano
             unless pass = variable(:scm_passphrase)
               pass = Capistrano::CLI.password_prompt
             end
-            "#{pass}\n"
+            %("#{pass}"\n)
           when /accept \(t\)emporarily/
             # git is asking whether to accept the certificate
             "t\n"

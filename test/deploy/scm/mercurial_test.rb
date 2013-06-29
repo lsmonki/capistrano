@@ -48,10 +48,10 @@ class DeploySCMMercurialTest < Test::Unit::TestCase
     require 'capistrano/logger'
     @config[:scm_user] = "fred"
     text = "user:"
-    assert_equal "fred\n", @source.handle_data(mock_state, :test_stream, text)
+    assert_equal %("fred"\n), @source.handle_data(mock_state, :test_stream, text)
     # :scm_username takes priority
     @config[:scm_username] = "wilma"
-    assert_equal "wilma\n", @source.handle_data(mock_state, :test_stream, text)
+    assert_equal %("wilma"\n), @source.handle_data(mock_state, :test_stream, text)
   end
 
   def test_sync
@@ -62,26 +62,26 @@ class DeploySCMMercurialTest < Test::Unit::TestCase
     @config[:scm_command] = "/opt/local/bin/hg"
     assert_equal "/opt/local/bin/hg pull --repository /var/www && /opt/local/bin/hg update --repository /var/www --clean 8a8e00b8f11b", @source.sync('8a8e00b8f11b', dest)
   end
-  
+
   def test_export
     dest = "/var/www"
     assert_raise(NotImplementedError) { @source.export('8a8e00b8f11b', dest) }
   end
-  
+
   def test_sends_password_if_set
     require 'capistrano/logger'
     text = "password:"
     @config[:scm_password] = "opensesame"
-    assert_equal "opensesame\n", @source.handle_data(mock_state, :test_stream, text)
+    assert_equal %("opensesame"\n), @source.handle_data(mock_state, :test_stream, text)
   end
-  
+
   def test_prompts_for_password_if_preferred
     require 'capistrano/logger'
     require 'capistrano/cli'
     Capistrano::CLI.stubs(:password_prompt).with("hg password: ").returns("opensesame")
     @config[:scm_prefer_prompt] = true
     text = "password:"
-    assert_equal "opensesame\n", @source.handle_data(mock_state, :test_stream, text)
+    assert_equal %("opensesame"\n), @source.handle_data(mock_state, :test_stream, text)
   end
 
 

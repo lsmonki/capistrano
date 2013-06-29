@@ -145,9 +145,19 @@ class DeploySCMGitTest < Test::Unit::TestCase
   def test_shallow_clone
     @config[:repository] = "git@somehost.com:project.git"
     @config[:git_shallow_clone] = 1
+    @config[:branch] = nil
     dest = "/var/www"
     rev = 'c2d9e79'
     assert_equal "git clone -q --depth 1 git@somehost.com:project.git /var/www && cd /var/www && git checkout -q -b deploy #{rev}", @source.checkout(rev, dest)
+  end
+
+  def test_shallow_clone_with_branch
+    @config[:repository] = "git@somehost.com:project.git"
+    @config[:git_shallow_clone] = 1
+    @config[:branch] = 'foobar'
+    dest = "/var/www"
+    rev = 'c2d9e79'
+    assert_equal "git clone -q -b foobar --depth 1 git@somehost.com:project.git /var/www && cd /var/www && git checkout -q -b deploy #{rev}", @source.checkout(rev, dest)
   end
 
   def test_remote_clone
@@ -207,5 +217,43 @@ class DeploySCMGitTest < Test::Unit::TestCase
     assert_equal "git", @source.local.command
     assert_equal "/foo/bar/git", @source.command
   end
+
+  def test_sends_password_if_set
+    require 'capistrano/logger'
+    text = "password:"
+    @config[:scm_password] = "opensesame"
+    assert_equal %("opensesame"\n), @source.handle_data(mock_state, :test_stream, text)
+  end
+
+  def test_prompt_password
+    require 'capistrano/logger'
+    require 'capistrano/cli'
+    Capistrano::CLI.stubs(:password_prompt).returns("opensesame")
+
+    text = 'password:'
+    assert_equal %("opensesame"\n), @source.handle_data(mock_state, :test_stream, text)
+  end
+
+  def test_sends_passphrase_if_set
+    require 'capistrano/logger'
+    text = "passphrase:"
+    @config[:scm_passphrase] = "opensesame"
+    assert_equal %("opensesame"\n), @source.handle_data(mock_state, :test_stream, text)
+  end
+
+  def test_prompt_passphrase
+    require 'capistrano/logger'
+    require 'capistrano/cli'
+    Capistrano::CLI.stubs(:password_prompt).returns("opensesame")
+
+    text = 'passphrase:'
+    assert_equal %("opensesame"\n), @source.handle_data(mock_state, :test_stream, text)
+  end
+
+  private
+
+    def mock_state
+      { :channel => { :host => "abc" } }
+    end
 end
 

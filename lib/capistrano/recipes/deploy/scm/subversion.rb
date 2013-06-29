@@ -69,17 +69,17 @@ module Capistrano
         # etc. are handled here.
         def handle_data(state, stream, text)
           host = state[:channel][:host]
-	        logger.info "[#{host} :: #{stream}] #{text}"
+          logger.info "[#{host} :: #{stream}] #{text}"
           case text
           when /\bpassword.*:/i
             # subversion is prompting for a password
-            "#{scm_password_prompt}\n"
+            %("#{scm_password_prompt}"\n)
           when %r{\(yes/no\)}
             # subversion is asking whether or not to connect
             "yes\n"
           when /passphrase/i
             # subversion is asking for the passphrase for the user's key
-            "#{variable(:scm_passphrase)}\n"
+            %("#{variable(:scm_passphrase)}"\n)
           when /The entry \'(.+?)\' is no longer a directory/
             raise Capistrano::Error, "subversion can't update because directory '#{$1}' was replaced. Please add it to svn:ignore."
           when /accept \(t\)emporarily/
@@ -97,8 +97,8 @@ module Capistrano
           def authentication
             username = variable(:scm_username)
             return "" unless username
-            result = "--username #{variable(:scm_username)} "
-            result << "--password #{variable(:scm_password)} " unless variable(:scm_auth_cache) || variable(:scm_prefer_prompt)
+            result = %(--username "#{variable(:scm_username)}")
+            result << %(--password "#{variable(:scm_password)}") unless variable(:scm_auth_cache) || variable(:scm_prefer_prompt)
             result << "--no-auth-cache " unless variable(:scm_auth_cache)
             result
           end

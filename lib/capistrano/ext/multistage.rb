@@ -15,7 +15,9 @@ Capistrano::Configuration.instance.load do
     desc "Set the target stage to `#{name}'."
     task(name) do
       set :stage, name.to_sym
-      load "#{location}/#{stage}"
+
+      file = "#{location}/#{stage}"
+      load file if file_in_load_path?(file)
     end
   end
 
@@ -39,7 +41,7 @@ Capistrano::Configuration.instance.load do
         else
           abort "No stage specified. Please specify one of: #{stages.join(', ')} (e.g. `cap #{stages.first} #{ARGV.last}')"
         end
-      end 
+      end
     end
 
     desc "Stub out the staging config files."
