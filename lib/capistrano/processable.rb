@@ -26,6 +26,8 @@ module Capistrano
 
       if read_sockets.any? || write_sockets.any?
         read_sockets, write_sockets, = IO.select(read_sockets, write_sockets, nil, wait)
+      else
+        return false
       end
 
       if read_sockets
